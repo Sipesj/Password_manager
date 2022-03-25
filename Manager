@@ -1,0 +1,130 @@
+from tkinter import *
+from tkinter import messagebox
+import random
+import pyperclip
+import json
+# ---------------------------- PASSWORD GENERATOR ------------------------------- #
+#creates a strong password between 12 and 18 characters of different types and randomized
+def generate_password():
+    password_textbox.delete(0, "end")
+    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+               'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
+               'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+
+    numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+    symbols = ['!', '#', '$', '%', '&', '(', ')', '*', '+']
+
+    nr_letters = random.randint(8, 10)
+    nr_symbols = random.randint(2, 4)
+    nr_numbers = random.randint(2, 4)
+    
+    letters_chosen = [random.choice(letters) for letter in range(random.randint(8, 10))]
+    symbols_chosen = [random.choice(symbols) for symbol in range(random.randint(2, 4))]
+    numbers_chosen = [random.choice(numbers) for number in range(random.randint(2, 4))]
+    password_list = letters_chosen + symbols_chosen + numbers_chosen
+
+    random.shuffle(password_list)
+
+    password = "".join(password_list)
+    password_textbox.insert(0, password)
+    #copies current password to clipboard
+    pyperclip.copy(password)
+
+#------------------------------SEARCH PASSWORD--------------------------------#
+# User can input the name of the website they saved their password under to retrieve it
+def website_search():
+
+    with open("data.json", "r") as data_file:
+        data = json.load(data_file)
+        website_name = website_textbox.get()
+        try:
+            website = data[website_name]
+        except KeyError:
+            messagebox.showerror(title="Invalid Website", message="The website entered was not found. Please check"
+                                                                  " that the website name is correct.")
+        else:
+            email = website["email"]
+            password = website["password"]
+            pyperclip.copy(f"{password}")
+            messagebox.showinfo(title="Website", message=f"User:   {email}\nPassword:   {password}")
+
+# ---------------------------- SAVE PASSWORD ------------------------------- #
+def add_password():
+    website = website_textbox.get()
+    user = user_textbox.get()
+    password = password_textbox.get()
+    new_data = {
+        website: {
+            "email": user,
+            "password": password,
+        }
+    }
+
+    if len(website) > 0 and len(password) >0:
+        try:
+            with open("data.json", "r") as data_file:
+                #reading old data
+                data = json.load(data_file)
+
+        except FileNotFoundError:
+            with open("data.json", "w") as data_file:
+                json.dump(new_data, data_file, indent=4)
+
+        else:
+            # update data dict with new data
+            data.update(new_data)
+            #writing updated data to file
+            with open("data.json", "w") as data_file:
+                json.dump(data, data_file, indent=4)
+
+        finally:
+            website_textbox.delete(0, "end")
+            password_textbox.delete(0, "end")
+            user_textbox.delete(0, "end")
+            user_textbox.insert(0, "") #input default email address to be used
+    else:
+        messagebox.showwarning(title="Missing Information", message="One or more items were not entered"
+                                                                                " into the generator. Please fill out all"
+                                                                                " boxes and try again." )
+
+
+# ---------------------------- UI SETUP ------------------------------- #
+window = Tk()
+window.title("Password Manager")
+window.config(padx=50, pady=50)
+
+image_file = PhotoImage(file="logo.png")
+canvas = Canvas(width=200, height=200)
+canvas.create_image(100, 100, image=image_file)
+canvas.grid(column=1, row=0)
+
+website_label = Label(text="Website:")
+website_label.grid(column=0, row=1)
+
+user_label = Label(text="Email/Username:")
+user_label.grid(column=0, row=2)
+
+password_label = Label(text="Password:")
+password_label.grid(column=0, row=3)
+
+website_textbox = Entry(width=50)
+website_textbox.grid(sticky="w",column=1, row=1,)
+website_textbox.focus()
+
+user_textbox = Entry(width=50)
+user_textbox.grid(sticky="w",column=1, row=2, columnspan=2)
+user_textbox.insert(0, "Justin.t.sipes@gmail.com")
+
+password_textbox = Entry(width=50)
+password_textbox.grid(sticky="w",column=1, row=3)
+
+generate_button = Button(text="Create Password", command=generate_password)
+generate_button.grid(sticky="w",column=2, row=3)
+
+add_button = Button(text="Add", width=36, command=add_password)
+add_button.grid(sticky="w", column=1, row=4, columnspan=2)
+
+search_button = Button(text="Search", command=website_search)
+search_button.grid(sticky="w", column=2, row=1)
+
+window.mainloop()
